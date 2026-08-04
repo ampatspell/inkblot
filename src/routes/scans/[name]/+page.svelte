@@ -1,70 +1,53 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
-	import Canvas from '$lib/canvas.svelte';
-	import { names } from '$lib/scans';
-	import { nextObject, prevObject } from '$lib/utils';
+	import Editor from '$lib/editor/editor.svelte';
+	import Navigation from '$lib/editor/navigation.svelte';
+	import Tools from '$lib/editor/tools.svelte';
+	import { useEditor } from '$lib/models.svelte';
 	import { innerHeight, innerWidth } from 'svelte/reactivity/window';
-	import { useCanvas, useScan } from '../../../lib/models.svelte';
 	import type { PageProps } from './$types';
 
-	const props: PageProps = $props();
-
+	let props: PageProps = $props();
 	let name = $derived(props.params.name);
+	let tools = 300;
 
-	let scan = useScan({ name: () => name });
-
-	let next = $derived(nextObject(names, name, false));
-	let prev = $derived(prevObject(names, name, false));
-
-	let p = 10;
-	let t = 42;
-
-	const canvas = useCanvas({
+	let editor = useEditor({
+		name: () => name,
 		size: {
-			width: () => (innerWidth.current ?? 0) - p * 2,
-			height: () => (innerHeight.current ?? 0) - t - p * 2
-		}
-	});
-
-	$effect(() => {
-		if (canvas.ctx) {
-			if (scan.img) {
-				canvas.ctx.drawImage(scan.img, 0, 0, 300, 300);
-			} else {
-				canvas.clear();
-			}
+			width: () => (innerWidth.current ?? 0) - tools - 1,
+			height: () => innerHeight.current
 		}
 	});
 </script>
 
-<div class="page" style:--padding="{p}px" style:--tools="{t}px">
-	<div class="canvas">
-		<Canvas {canvas} />
+<div class="page" style:--tools="{tools}px">
+	<div class="editor">
+		<Editor {editor} />
 	</div>
 	<div class="tools">
-		{#if prev}
-			<a href={resolve('/scans/[name]', { name: prev })}>Prev</a>
-		{/if}
-		{#if next}
-			<a href={resolve('/scans/[name]', { name: next })}>Next</a>
-		{/if}
+		<Tools {editor} />
+		<div class="footer">
+			<Navigation {name} />
+		</div>
 	</div>
 </div>
 
 <style lang="scss">
 	.page {
+		flex: 1;
 		display: flex;
-		flex-direction: column;
-		> .canvas {
-			padding: var(--padding);
+		flex-direction: row;
+		> .editor {
+			flex: 1;
+			display: flex;
 		}
 		> .tools {
-			height: var(--tools);
+			width: var(--tools);
 			display: flex;
-			flex-direction: row;
-			gap: 10px;
-			align-items: center;
-			padding: 0 var(--padding);
+			flex-direction: column;
+			border-left: 1px solid var(--dark-border-color-1);
+			> .footer {
+				border-top: 1px solid var(--dark-border-color-1);
+			}
 		}
 	}
 </style>
