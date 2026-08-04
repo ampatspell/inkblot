@@ -1,0 +1,88 @@
+@use 'sass:color';
+
+:root {
+  --dark-font-family: 'Ubuntu Mono', monospace;
+  --dark-font-size: 15px;
+  --dark-font-size-small: 13px;
+  --dark-font-weight: 400;
+  --dark-color: #{color.adjust(#000, $alpha: -0.2)};
+  --dark-faded-color-1: #{color.adjust(#000, $alpha: -0.5)};
+  --dark-white-color: #fff;
+  --dark-border-color-1: #{color.adjust(#000, $alpha: -0.9)};
+  --dark-border-color-2: #{color.adjust(#000, $alpha: -0.94)};
+  --dark-selected-background-color-1: #{color.adjust(#000, $alpha: -0.96)};
+  --dark-selected-background-color-2: #{color.adjust(#000, $alpha: -0.92)};
+  --dark-accent-color-1: #{color.adjust(#ff6660, $alpha: -0.7)};
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+body {
+  line-height: 1;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
+
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  overflow-wrap: break-word;
+}
+
+html {
+  min-height: 100%;
+  height: 100%;
+}
+
+body {
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--dark-white-color);
+  font-family: var(--dark-font-family);
+  font-size: var(--dark-font-size);
+}
+
+a {
+  display: inline-flex;
+  flex-direction: row;
+}
+
+a,
+a:visited {
+  color: inherit;
+  outline: none;
+}
+
+#svelte-inspector-host {
+  font-family: var(--dark-font-family);
+  font-size: 12px;
+}
