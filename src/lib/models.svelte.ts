@@ -232,10 +232,10 @@ export const useEditor = (opts: {
 	}
 
 	const draw = (ctx: CanvasRenderingContext2D, size: Size) => {
-		const height = canvas.size.height;
-		if (height) {
+		const { width, height } = canvas.size;
+		if (width && height) {
 			ctx.save();
-			ctx.translate(0, Math.floor(height / 2 - size.height / 2));
+			ctx.translate(Math.floor(width / 2 - size.width), Math.floor(height / 2 - size.height / 2));
 			{
 				ctx.save();
 				left.draw(canvas);
