@@ -16,6 +16,16 @@ export const useCanvas = (opts: {
 		});
 		element = $state<HTMLCanvasElement>();
 		ctx = $derived(this.element?.getContext('2d'));
+
+		clear() {
+			const {
+				ctx,
+				size: { width, height }
+			} = this;
+			if (ctx && width && height) {
+				ctx.clearRect(0, 0, width, height);
+			}
+		}
 	}
 
 	return new CanvasModel();
@@ -23,9 +33,9 @@ export const useCanvas = (opts: {
 
 export type UsedCanvas = ReturnType<typeof useCanvas>;
 
-export const useScan = (opts: { name: string }) => {
+export const useScan = (opts: { name: () => string | undefined }) => {
 	class ScanModel {
-		name = $derived(opts.name);
+		name = $state<string>();
 		img = $state<HTMLImageElement>();
 	}
 
@@ -38,7 +48,14 @@ export const useScan = (opts: { name: string }) => {
 		}
 	};
 
-	load(model.name);
+	$effect(() => {
+		const name = opts.name();
+		if (name && model.name !== name) {
+			model.img = undefined;
+			model.name = name;
+			load(name);
+		}
+	});
 
 	return model;
 };

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { UsedCanvas } from '../routes/dev/dev.svelte';
+	import type { UsedCanvas } from './models.svelte';
 
 	let props: {
 		canvas: UsedCanvas;
