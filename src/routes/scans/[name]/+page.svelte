@@ -5,10 +5,11 @@
 	import { useEditor } from '$lib/models.svelte';
 	import { innerHeight, innerWidth } from 'svelte/reactivity/window';
 	import type { PageProps } from './$types';
+	import { onNavigate } from '$app/navigation';
 
 	let props: PageProps = $props();
 	let name = $derived(props.params.name);
-	let tools = 300;
+	let tools = 200;
 
 	let editor = useEditor({
 		name: () => name,
@@ -16,6 +17,10 @@
 			width: () => (innerWidth.current ?? 0) - tools - 1,
 			height: () => innerHeight.current
 		}
+	});
+
+	onNavigate(() => {
+		editor.tools.reset();
 	});
 </script>
 

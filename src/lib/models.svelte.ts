@@ -81,16 +81,57 @@ export const useScan = (opts: { name: () => string | undefined }) => {
 
 export type UsedScan = ReturnType<typeof useScan>;
 
-export const useProcessed = (opts: { scan: UsedScan; size: () => Size | undefined }) => {
+type Position = 'left' | 'right';
+
+export const useProcessed = (opts: {
+	scan: UsedScan;
+	size: () => Size | undefined;
+	position: Position;
+	tools: UsedTools;
+}) => {
 	const size = $derived(opts.size());
+
+	const processed = document.createElement('canvas');
+
+	$effect(() => {
+		const ctx = processed.getContext('2d');
+		if (ctx && size) {
+			// needs flips, rotation
+			processed.width = size.width;
+			processed.height = size.height;
+			const img = opts.scan.img;
+			if (img) {
+				ctx.drawImage(img, 0, 0, size.width, size.height);
+			} else {
+				ctx.clearRect(0, 0, size.width, size.height);
+			}
+		}
+	});
 
 	class ProcessedModel {
 		draw(canvas: UsedCanvas) {
 			const ctx = canvas.ctx;
-			const img = opts.scan.img;
-			if (ctx && img && size) {
+			if (ctx && size) {
 				const { width, height } = size;
-				ctx.drawImage(img, 0, 0, width, height);
+
+				if (opts.tools.hFlip.value) {
+					if (opts.position !== 'left') {
+						ctx.translate(width, 0);
+						ctx.scale(-1, 1);
+					}
+				} else {
+					if (opts.position === 'left') {
+						ctx.translate(width, 0);
+						ctx.scale(-1, 1);
+					}
+				}
+
+				if (opts.tools.vFlip.value) {
+					ctx.translate(0, height);
+					ctx.scale(1, -1);
+				}
+
+				ctx.drawImage(processed, 0, 0, width, height);
 			}
 		}
 	}
@@ -117,6 +158,49 @@ const contain = (size: Size, max: Size | undefined): Size | undefined => {
 	}
 };
 
+export const useBooleanProp = () => {
+	class BooleanProp {
+		value = $state(false);
+		onToggle = () => {
+			this.value = !this.value;
+		};
+	}
+	return new BooleanProp();
+};
+
+export type UsedBooleanProp = ReturnType<typeof useBooleanProp>;
+
+export const useRotationProp = () => {
+	class RotationProp {
+		value = $state(0);
+		onNext = () => {
+			this.value = this.value + 90;
+			if (this.value > 270) {
+				this.value = 0;
+			}
+		};
+	}
+	return new RotationProp();
+};
+
+export type UsedRotationProp = ReturnType<typeof useRotationProp>;
+
+export const useTools = () => {
+	class ToolsModel {
+		hFlip = useBooleanProp();
+		vFlip = useBooleanProp();
+		rotate = useRotationProp();
+		reset() {
+			this.hFlip.value = false;
+			this.vFlip.value = false;
+			this.rotate.value = 0;
+		}
+	}
+	return new ToolsModel();
+};
+
+export type UsedTools = ReturnType<typeof useTools>;
+
 export const useEditor = (opts: {
 	name: () => string;
 	size: {
@@ -135,14 +219,16 @@ export const useEditor = (opts: {
 		}
 	});
 
-	const left = useProcessed({ scan, size: () => size });
-	const right = useProcessed({ scan, size: () => size });
+	const tools = useTools();
 
+	const left = useProcessed({ position: 'left', scan, size: () => size, tools });
+	const right = useProcessed({ position: 'right', scan, size: () => size, tools });
 	const canvas = useCanvas({ size: opts.size });
 
 	class EditorModel {
 		scan = scan;
 		canvas = canvas;
+		tools = tools;
 	}
 
 	const draw = (ctx: CanvasRenderingContext2D, size: Size) => {

@@ -36,7 +36,7 @@
 			}
 			&.has {
 				&:hover {
-					background: #eee;
+					background: var(--dark-selected-background-color-2);
 				}
 			}
 		}
