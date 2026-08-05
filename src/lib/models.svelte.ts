@@ -347,7 +347,7 @@ export const useEditor = (opts: {
 			{
 				ctx.save();
 				ctx.fillStyle = '#000';
-				ctx.font = '15px Ubuntu Mono';
+				ctx.font = '16px Ubuntu Mono';
 				ctx.fillText(tools.description, 5, 20);
 				ctx.restore();
 			}
