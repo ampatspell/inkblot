@@ -1,5 +1,6 @@
 import { loadImage } from '$lib/canvas';
 import { urlFor } from '$lib/scans';
+import { nextObject } from './utils';
 
 type Point = {
 	x: number;
@@ -190,12 +191,41 @@ export const useTools = () => {
 		hFlip = useBooleanProp();
 		vFlip = useBooleanProp();
 		rotate = useRotationProp();
+		options = $derived.by(() => {
+			const values: [boolean, boolean, number, boolean][] = [];
+			[false, true].forEach((hf) => {
+				[false, true].forEach((vf) => {
+					[0, 90, 180, 270].forEach((r) => {
+						const current =
+							hf === this.hFlip.value && vf === this.vFlip.value && this.rotate.value === r;
+						values.push([hf, vf, r, current]);
+					});
+				});
+			});
+			const curr = values.find((o) => o[3] === true);
+			const next = nextObject(values, curr);
+			const isEnabled = !!next;
+			const onNext = () => {
+				if (next) {
+					this.hFlip.value = next[0];
+					this.vFlip.value = next[1];
+					this.rotate.value = next[2];
+				}
+			};
+			return {
+				values,
+				isEnabled,
+				onNext
+			};
+		});
+
 		reset() {
 			this.hFlip.value = false;
 			this.vFlip.value = false;
 			this.rotate.value = 0;
 		}
 	}
+
 	return new ToolsModel();
 };
 
