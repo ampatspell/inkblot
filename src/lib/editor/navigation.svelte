@@ -13,7 +13,7 @@
 </script>
 
 {#snippet link(name: string | undefined, label: string)}
-	{@const route = name ? resolve('/scans/[name]', { name }) : undefined}
+	{@const route = name ? resolve('/images/[name]', { name }) : undefined}
 	<Button type="route" {route} value={label} />
 {/snippet}
 

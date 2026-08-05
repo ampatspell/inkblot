@@ -7,7 +7,7 @@
 
 	let name = images.firstHandleName;
 	if (name) {
-		goto(resolve('/scans/[name]', { name }));
+		goto(resolve('/images/[name]', { name }));
 	} else {
 		goto(resolve('/'));
 	}

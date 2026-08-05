@@ -10,7 +10,7 @@
 </script>
 
 <div class="blank">
-	<div class="row">Inkblot</div>
+	<div class="row">inkblot</div>
 	<div class="row">
 		<Button type="action" {onClick} value="Choose images" />
 	</div>

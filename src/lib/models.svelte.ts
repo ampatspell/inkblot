@@ -248,7 +248,6 @@ export const useTools = () => {
 			this.hFlip.value = false;
 			this.vFlip.value = false;
 			this.rotate.value = 0;
-			this.cut.value = 0;
 		}
 
 		description = $derived.by(() => {

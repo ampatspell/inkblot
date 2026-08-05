@@ -21,6 +21,7 @@
 		href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&display=swap"
 		rel="stylesheet"
 	/>
+	<title>inkblot</title>
 </svelte:head>
 
 {@render children()}

@@ -29,7 +29,7 @@
 		class={{ row: true, disabled: !tools.options.isEnabled }}
 		onclick={() => tools.options.onNext()}
 	>
-		<div class="value">Next</div>
+		<div class="value">Next flip & rotation</div>
 	</div>
 {/snippet}
 
@@ -55,9 +55,9 @@
 	{@render boolean(tools.hFlip, 'Horizontal flip')}
 	{@render boolean(tools.vFlip, 'Vertical flip')}
 	{@render rotation(tools.rotate, 'Rotate')}
-	{@render cut()}
 	{@render next()}
 	{@render reset()}
+	{@render cut()}
 	{@render download()}
 </div>
 

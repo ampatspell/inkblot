@@ -7,7 +7,7 @@
 	const images = getImages();
 
 	const onClear = () => images.clear();
-	const onStart = () => goto(resolve('/scans'));
+	const onStart = () => goto(resolve('/images'));
 </script>
 
 <div class="content">
