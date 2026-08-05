@@ -1,7 +1,7 @@
 import { loadImage } from '$lib/canvas';
 import { urlFor } from '$lib/scans';
 import { untrack } from 'svelte';
-import { nextObject, run } from './utils';
+import { nextObject } from './utils';
 
 type Size = {
 	width: number;
@@ -95,22 +95,22 @@ export const useProcessed = (opts: {
 	$effect(() => {
 		const img = opts.scan.img;
 		if (fit && img) {
-			const vf = run(() => {
-				const value = tools.vFlip.value;
-				if (opts.position === 'left') {
-					return !value;
-				}
-				return value;
-			});
-
-			const hf = tools.hFlip.value;
+			const flip = opts.position === 'left';
 			const deg = tools.rotate.value;
 
 			let size: Size;
+			let hf = tools.hFlip.value;
+			let vf = tools.vFlip.value;
 			if (deg === 90 || deg === 270) {
 				size = { width: img.height, height: img.width };
+				if (flip) {
+					vf = !vf;
+				}
 			} else {
 				size = { width: img.width, height: img.height };
+				if (flip) {
+					hf = !hf;
+				}
 			}
 
 			const scaled = contain(size, fit);
@@ -249,6 +249,13 @@ export const useTools = () => {
 			this.rotate.value = 0;
 			this.cut.value = 0;
 		}
+
+		description = $derived.by(() => {
+			const v = this.vFlip.value ? 'v' : '';
+			const h = this.hFlip.value ? 'h' : '';
+			const r = this.rotate.value ? this.rotate.value : '';
+			return [v, h, r].filter(Boolean).join('');
+		});
 	}
 
 	return new ToolsModel();
@@ -283,10 +290,27 @@ export const useEditor = (opts: {
 
 	const canvas = useCanvas({ size: opts.size });
 
+	const name = $derived.by(() => {
+		const name = opts.name();
+		const description = tools.description;
+		return [name, description].filter(Boolean).join('-');
+	});
+
+	const download = () => {
+		const url = canvas.element?.toDataURL('image/png');
+		if (url) {
+			const a = document.createElement('a');
+			a.download = `${name}.png`;
+			a.href = url;
+			a.click();
+		}
+	};
+
 	class EditorModel {
 		scan = scan;
 		canvas = canvas;
 		tools = tools;
+		download = download;
 	}
 
 	const draw = (ctx: CanvasRenderingContext2D) => {
@@ -295,29 +319,38 @@ export const useEditor = (opts: {
 		if (width && height) {
 			const clip = Math.floor(size.width * tools.cut.value);
 			ctx.clearRect(0, 0, width, height);
-			ctx.save();
-			ctx.translate(0, Math.floor(height / 2 - size.height / 2));
-			let x = Math.floor(width / 2 - size.width);
 			{
 				ctx.save();
-				ctx.beginPath();
-				ctx.rect(x + clip, 0, size.width - clip, height);
-				ctx.clip();
-				ctx.translate(x + clip, 0);
-				left.draw(canvas);
+				ctx.translate(0, Math.floor(height / 2 - size.height / 2));
+				let x = Math.floor(width / 2 - size.width);
+				{
+					ctx.save();
+					ctx.beginPath();
+					ctx.rect(x + clip, 0, size.width - clip, height);
+					ctx.clip();
+					ctx.translate(x + clip, 0);
+					left.draw(canvas);
+					ctx.restore();
+				}
+				x += size.width - clip;
+				{
+					ctx.save();
+					ctx.beginPath();
+					ctx.rect(x + clip, 0, size.width - clip, height);
+					ctx.clip();
+					ctx.translate(x, 0);
+					right.draw(canvas);
+					ctx.restore();
+				}
 				ctx.restore();
 			}
-			x += size.width - clip;
 			{
 				ctx.save();
-				ctx.beginPath();
-				ctx.rect(x + clip, 0, size.width - clip, height);
-				ctx.clip();
-				ctx.translate(x, 0);
-				right.draw(canvas);
+				ctx.fillStyle = '#000';
+				ctx.font = '15px Ubuntu Mono';
+				ctx.fillText(tools.description, 5, 20);
 				ctx.restore();
 			}
-			ctx.restore();
 		}
 	};
 

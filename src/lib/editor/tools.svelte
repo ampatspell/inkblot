@@ -45,13 +45,20 @@
 	</div>
 {/snippet}
 
+{#snippet download()}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div class="row" onclick={() => props.editor.download()}>Download</div>
+{/snippet}
+
 <div class="tools">
 	{@render boolean(tools.hFlip, 'Horizontal flip')}
 	{@render boolean(tools.vFlip, 'Vertical flip')}
 	{@render rotation(tools.rotate, 'Rotate')}
+	{@render cut()}
 	{@render next()}
 	{@render reset()}
-	{@render cut()}
+	{@render download()}
 </div>
 
 <style lang="scss">
