@@ -29,19 +29,5 @@
 		flex-direction: row;
 		align-items: center;
 		justify-content: space-between;
-		> a {
-			line-height: 1;
-			padding: 5px 10px;
-			border-radius: 3px;
-			text-decoration: none;
-			&:not(.has) {
-				opacity: 0.3;
-			}
-			&.has {
-				&:hover {
-					background: var(--dark-selected-background-color-2);
-				}
-			}
-		}
 	}
 </style>
