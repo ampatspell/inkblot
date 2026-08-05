@@ -1,6 +1,5 @@
-import { loadImage } from '$lib/canvas';
-import { urlFor } from '$lib/scans';
-import { untrack } from 'svelte';
+import { defer, prevObject } from './utils';
+import { getContext, setContext, untrack } from 'svelte';
 import { nextObject } from './utils';
 
 type Size = {
@@ -41,6 +40,8 @@ export const useCanvas = (opts: {
 export type UsedCanvas = ReturnType<typeof useCanvas>;
 
 export const useScan = (opts: { name: () => string | undefined }) => {
+	const images = getImages();
+
 	class ScanModel {
 		name = $state<string>();
 		img = $state<HTMLImageElement>();
@@ -58,7 +59,7 @@ export const useScan = (opts: { name: () => string | undefined }) => {
 	const model = new ScanModel();
 
 	const load = async (name: string) => {
-		const img = await loadImage(urlFor(name));
+		const img = await images.load(name);
 		if (name === model.name) {
 			model.img = img;
 		}
@@ -296,11 +297,19 @@ export const useEditor = (opts: {
 		return [name, description].filter(Boolean).join('-');
 	});
 
+	const base = $derived.by(() => {
+		const dot = name.lastIndexOf('.');
+		if (dot !== -1) {
+			return name.substring(0, dot);
+		}
+		return name;
+	});
+
 	const download = () => {
 		const url = canvas.element?.toDataURL('image/png');
 		if (url) {
 			const a = document.createElement('a');
-			a.download = `${name}.png`;
+			a.download = `${base}.png`;
 			a.href = url;
 			a.click();
 		}
@@ -368,3 +377,92 @@ export const useEditor = (opts: {
 };
 
 export type UsedEditor = ReturnType<typeof useEditor>;
+
+export const loadImage = (url: string) => {
+	const deferred = defer<HTMLImageElement>();
+	const img = document.createElement('img');
+	img.addEventListener('error', () => {
+		deferred.reject(new Error('Failed to load image'));
+	});
+	img.addEventListener('load', () => {
+		deferred.resolve(img);
+	});
+	img.src = url;
+	return deferred.promise;
+};
+
+export const useImages = (opts: { didFailToLoadImage: () => void }) => {
+	class ImagesModel {
+		handles = $state<FileSystemFileHandle[]>([]);
+		isEmpty = $derived(this.handles.length === 0);
+
+		async select() {
+			const opts = {
+				types: [
+					{
+						description: 'Images',
+						accept: {
+							'image/*': ['.png', '.jpeg', '.jpg']
+						}
+					}
+				],
+				excludeAcceptAllOption: true,
+				multiple: true
+			} satisfies OpenFilePickerOptions;
+
+			this.handles = await window.showOpenFilePicker(opts);
+		}
+
+		message = $derived.by(() => {
+			const count = this.handles.length;
+			if (count === 1) {
+				return `One image selected`;
+			}
+			return `${count} images selected`;
+		});
+
+		firstHandleName = $derived.by(() => {
+			return this.handles[0].name;
+		});
+
+		around(name: string) {
+			const handles = this.handles;
+			const handle = this.handles.find((handle) => handle.name === name);
+			let prev: string | undefined;
+			let next: string | undefined;
+			if (handle) {
+				prev = prevObject(handles, handle, false)?.name;
+				next = nextObject(handles, handle, false)?.name;
+			}
+			return {
+				prev,
+				next
+			};
+		}
+
+		async load(name: string) {
+			const handle = this.handles.find((handle) => handle.name === name);
+			if (handle) {
+				const file = await handle.getFile();
+				return await loadImage(URL.createObjectURL(file));
+			} else {
+				opts.didFailToLoadImage();
+			}
+		}
+
+		clear() {
+			this.handles = [];
+		}
+	}
+	return new ImagesModel();
+};
+
+export type UsedImages = ReturnType<typeof useImages>;
+
+export const setImagesContext = (images: UsedImages) => {
+	return setContext('used-images', images);
+};
+
+export const getImages = (): UsedImages => {
+	return getContext('used-images');
+};
