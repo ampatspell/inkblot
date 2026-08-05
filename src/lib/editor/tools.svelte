@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { UsedBooleanProp, UsedEditor, UsedRotationProp } from '$lib/models.svelte';
+	import Range from './range.svelte';
 
 	let props: { editor: UsedEditor } = $props();
 	let tools = $derived(props.editor.tools);
@@ -38,12 +39,19 @@
 	<div class="row" onclick={() => tools.reset()}>Reset</div>
 {/snippet}
 
+{#snippet cut()}
+	<div class="row no-hover">
+		<Range prop={tools.cut} />
+	</div>
+{/snippet}
+
 <div class="tools">
 	{@render boolean(tools.hFlip, 'Horizontal flip')}
 	{@render boolean(tools.vFlip, 'Vertical flip')}
 	{@render rotation(tools.rotate, 'Rotate')}
 	{@render next()}
 	{@render reset()}
+	{@render cut()}
 </div>
 
 <style lang="scss">
@@ -61,10 +69,16 @@
 				}
 			}
 			&:not(.disabled) {
-				&:hover {
-					cursor: pointer;
-					background: var(--dark-selected-background-color-1);
+				&:not(.no-hover) {
+					&:hover {
+						cursor: pointer;
+						background: var(--dark-selected-background-color-1);
+					}
 				}
+			}
+
+			> .range {
+				width: 100%;
 			}
 		}
 	}

@@ -1,11 +1,7 @@
 import { loadImage } from '$lib/canvas';
 import { urlFor } from '$lib/scans';
-import { nextObject } from './utils';
-
-type Point = {
-	x: number;
-	y: number;
-};
+import { untrack } from 'svelte';
+import { nextObject, run } from './utils';
 
 type Size = {
 	width: number;
@@ -86,53 +82,70 @@ type Position = 'left' | 'right';
 
 export const useProcessed = (opts: {
 	scan: UsedScan;
-	size: () => Size | undefined;
+	fit: () => Size | undefined;
 	position: Position;
 	tools: UsedTools;
 }) => {
-	const size = $derived(opts.size());
+	const fit = $derived(opts.fit());
+	const tools = opts.tools;
 
-	const processed = document.createElement('canvas');
+	const transformed = document.createElement('canvas');
+	let token = $state(0);
 
 	$effect(() => {
-		const ctx = processed.getContext('2d');
-		if (ctx && size) {
-			// needs flips, rotation
-			processed.width = size.width;
-			processed.height = size.height;
-			const img = opts.scan.img;
-			if (img) {
-				ctx.drawImage(img, 0, 0, size.width, size.height);
+		const img = opts.scan.img;
+		if (fit && img) {
+			const vf = run(() => {
+				const value = tools.vFlip.value;
+				if (opts.position === 'left') {
+					return !value;
+				}
+				return value;
+			});
+
+			const hf = tools.hFlip.value;
+			const deg = tools.rotate.value;
+
+			let size: Size;
+			if (deg === 90 || deg === 270) {
+				size = { width: img.height, height: img.width };
 			} else {
-				ctx.clearRect(0, 0, size.width, size.height);
+				size = { width: img.width, height: img.height };
+			}
+
+			const scaled = contain(size, fit);
+			transformed.width = scaled.width;
+			transformed.height = scaled.height;
+
+			const ctx = transformed.getContext('2d');
+			if (ctx) {
+				ctx.translate(transformed.width / 2, transformed.height / 2);
+				ctx.rotate((deg * Math.PI) / 180);
+				ctx.scale(hf ? -1 : 1, vf ? -1 : 1);
+				const { width, height } = contain(img, fit);
+				ctx.drawImage(img, -width / 2, -height / 2, width, height);
 			}
 		}
+		untrack(() => token++);
 	});
 
 	class ProcessedModel {
+		size = $derived.by(() => {
+			// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+			token;
+			const { width, height } = transformed;
+			return {
+				width,
+				height
+			};
+		});
+
 		draw(canvas: UsedCanvas) {
+			// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+			token;
 			const ctx = canvas.ctx;
-			if (ctx && size) {
-				const { width, height } = size;
-
-				if (opts.tools.hFlip.value) {
-					if (opts.position !== 'left') {
-						ctx.translate(width, 0);
-						ctx.scale(-1, 1);
-					}
-				} else {
-					if (opts.position === 'left') {
-						ctx.translate(width, 0);
-						ctx.scale(-1, 1);
-					}
-				}
-
-				if (opts.tools.vFlip.value) {
-					ctx.translate(0, height);
-					ctx.scale(1, -1);
-				}
-
-				ctx.drawImage(processed, 0, 0, width, height);
+			if (ctx) {
+				ctx.drawImage(transformed, 0, 0, transformed.width, transformed.height);
 			}
 		}
 	}
@@ -140,23 +153,21 @@ export const useProcessed = (opts: {
 	return new ProcessedModel();
 };
 
-const contain = (size: Size, max: Size | undefined): Size | undefined => {
-	if (max) {
-		const scale = (key: keyof Size) => {
-			return max[key] / size[key];
-		};
+const contain = (size: Size, max: Size): Size => {
+	const scale = (key: keyof Size) => {
+		return max[key] / size[key];
+	};
 
-		const s = Math.min(scale('width'), scale('height'));
+	const s = Math.min(scale('width'), scale('height'));
 
-		const calc = (key: keyof Size) => {
-			return Math.floor(size[key] * s);
-		};
+	const calc = (key: keyof Size) => {
+		return Math.floor(size[key] * s);
+	};
 
-		return {
-			width: calc('width'),
-			height: calc('height')
-		};
-	}
+	return {
+		width: calc('width'),
+		height: calc('height')
+	};
 };
 
 export const useBooleanProp = () => {
@@ -186,15 +197,28 @@ export const useRotationProp = () => {
 
 export type UsedRotationProp = ReturnType<typeof useRotationProp>;
 
+export const useCutProp = () => {
+	class CutProp {
+		value = $state(0);
+		onValue = (next: number) => {
+			this.value = Math.min(next, 1);
+		};
+	}
+	return new CutProp();
+};
+
+export type UsedCutProp = ReturnType<typeof useCutProp>;
+
 export const useTools = () => {
 	class ToolsModel {
 		hFlip = useBooleanProp();
 		vFlip = useBooleanProp();
 		rotate = useRotationProp();
+		cut = useCutProp();
 		options = $derived.by(() => {
 			const values: [boolean, boolean, number, boolean][] = [];
-			[false, true].forEach((hf) => {
-				[false, true].forEach((vf) => {
+			[false, true].forEach((vf) => {
+				[false, true].forEach((hf) => {
 					[0, 90, 180, 270].forEach((r) => {
 						const current =
 							hf === this.hFlip.value && vf === this.vFlip.value && this.rotate.value === r;
@@ -223,6 +247,7 @@ export const useTools = () => {
 			this.hFlip.value = false;
 			this.vFlip.value = false;
 			this.rotate.value = 0;
+			this.cut.value = 0;
 		}
 	}
 
@@ -240,19 +265,22 @@ export const useEditor = (opts: {
 }) => {
 	const scan = useScan({ name: opts.name });
 
-	const size = $derived.by(() => {
-		const ew = opts.size.width();
-		const eh = opts.size.height();
-		const is = scan.size;
-		if (ew && eh && is) {
-			return contain(is, { width: ew / 2, height: eh });
+	const fit = $derived.by(() => {
+		const width = opts.size.width();
+		const height = opts.size.height();
+		if (width && height) {
+			return {
+				width: width / 2,
+				height
+			};
 		}
 	});
 
 	const tools = useTools();
 
-	const left = useProcessed({ position: 'left', scan, size: () => size, tools });
-	const right = useProcessed({ position: 'right', scan, size: () => size, tools });
+	const left = useProcessed({ position: 'left', scan, fit: () => fit, tools });
+	const right = useProcessed({ position: 'right', scan, fit: () => fit, tools });
+
 	const canvas = useCanvas({ size: opts.size });
 
 	class EditorModel {
@@ -261,19 +289,31 @@ export const useEditor = (opts: {
 		tools = tools;
 	}
 
-	const draw = (ctx: CanvasRenderingContext2D, size: Size) => {
+	const draw = (ctx: CanvasRenderingContext2D) => {
 		const { width, height } = canvas.size;
+		const size = left.size;
 		if (width && height) {
+			const clip = Math.floor(size.width * tools.cut.value);
+			ctx.clearRect(0, 0, width, height);
 			ctx.save();
-			ctx.translate(Math.floor(width / 2 - size.width), Math.floor(height / 2 - size.height / 2));
+			ctx.translate(0, Math.floor(height / 2 - size.height / 2));
+			let x = Math.floor(width / 2 - size.width);
 			{
 				ctx.save();
+				ctx.beginPath();
+				ctx.rect(x + clip, 0, size.width - clip, height);
+				ctx.clip();
+				ctx.translate(x + clip, 0);
 				left.draw(canvas);
 				ctx.restore();
 			}
+			x += size.width - clip;
 			{
 				ctx.save();
-				ctx.translate(size.width, 0);
+				ctx.beginPath();
+				ctx.rect(x + clip, 0, size.width - clip, height);
+				ctx.clip();
+				ctx.translate(x, 0);
 				right.draw(canvas);
 				ctx.restore();
 			}
@@ -283,8 +323,8 @@ export const useEditor = (opts: {
 
 	$effect(() => {
 		if (canvas.ctx) {
-			if (scan.img && size) {
-				draw(canvas.ctx, size);
+			if (scan.img) {
+				draw(canvas.ctx);
 			} else {
 				canvas.clear();
 			}
