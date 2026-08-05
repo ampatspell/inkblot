@@ -198,9 +198,23 @@ export const useRotationProp = () => {
 
 export type UsedRotationProp = ReturnType<typeof useRotationProp>;
 
+const round = (value: number, decimals = 2) => {
+	const num = Number(value);
+	if (Number.isNaN(num)) {
+		return NaN;
+	}
+	const valueParts = num.toString().split('e');
+	const ae = valueParts[1] ? Number(valueParts[1]) : 0;
+	const shifted = Math.round(Number(`${valueParts[0]}e${ae + decimals}`));
+	const parts = shifted.toString().split('e');
+	const be = parts[1] ? Number(parts[1]) : 0;
+	return Number(`${parts[0]}e${be - decimals}`);
+};
+
 export const useCutProp = () => {
 	class CutProp {
 		value = $state(0);
+		rounded = $derived(round(this.value, 2));
 		onValue = (next: number) => {
 			this.value = Math.min(next, 1);
 		};
@@ -254,7 +268,8 @@ export const useTools = () => {
 			const v = this.vFlip.value ? 'v' : '';
 			const h = this.hFlip.value ? 'h' : '';
 			const r = this.rotate.value ? this.rotate.value : '';
-			return [v, h, r].filter(Boolean).join('');
+			const c = this.cut.rounded;
+			return [[v, h, r].filter(Boolean).join(''), c].filter(Boolean).join('-');
 		});
 	}
 
@@ -291,17 +306,21 @@ export const useEditor = (opts: {
 	const canvas = useCanvas({ size: opts.size });
 
 	const name = $derived.by(() => {
-		const name = opts.name();
-		const description = tools.description;
-		return [name, description].filter(Boolean).join('-');
+		return opts.name();
 	});
 
-	const base = $derived.by(() => {
+	const _base = $derived.by(() => {
 		const dot = name.lastIndexOf('.');
 		if (dot !== -1) {
 			return name.substring(0, dot);
 		}
 		return name;
+	});
+
+	const base = $derived.by(() => {
+		const base = _base;
+		const description = tools.description;
+		return [base, description].filter(Boolean).join('--');
 	});
 
 	const download = () => {
@@ -356,7 +375,7 @@ export const useEditor = (opts: {
 				ctx.save();
 				ctx.fillStyle = '#000';
 				ctx.font = '16px Ubuntu Mono';
-				ctx.fillText(tools.description, 5, 20);
+				ctx.fillText(base, 5, 20);
 				ctx.restore();
 			}
 		}

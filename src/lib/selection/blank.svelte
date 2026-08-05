@@ -10,8 +10,11 @@
 </script>
 
 <div class="blank">
-	<div class="row">inkblot</div>
-	<div class="row">
+	<div class="blot">
+		<!-- svelte-ignore a11y_missing_attribute -->
+		<img src="/blot.png" draggable="false" />
+	</div>
+	<div class="action">
 		<Button type="action" {onClick} value="Choose images" />
 	</div>
 </div>
@@ -23,6 +26,12 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 10px;
+		overflow: hidden;
+		> .blot {
+			padding: 0 0 0 40px;
+		}
+		> .action {
+			padding: 50px 0 0 0;
+		}
 	}
 </style>
