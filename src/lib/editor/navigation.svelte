@@ -1,17 +1,20 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { names } from '$lib/scans';
-	import { nextObject, prevObject } from '$lib/utils';
+	import Button from '$lib/button.svelte';
+	import { getImages } from '$lib/models.svelte';
 
 	let { name }: { name: string } = $props();
 
-	let next = $derived(nextObject(names, name, false));
-	let prev = $derived(prevObject(names, name, false));
+	let images = getImages();
+	let around = $derived(images.around(name));
+
+	let next = $derived(around.next);
+	let prev = $derived(around.prev);
 </script>
 
 {#snippet link(name: string | undefined, label: string)}
-	{@const href = name ? resolve('/scans/[name]', { name }) : undefined}
-	<a class={{ has: !!href }} {href}>{label}</a>
+	{@const route = name ? resolve('/scans/[name]', { name }) : undefined}
+	<Button type="route" {route} value={label} />
 {/snippet}
 
 <div class="navigation">
