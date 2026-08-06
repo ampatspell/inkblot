@@ -224,6 +224,17 @@ export const useCutProp = () => {
 
 export type UsedCutProp = ReturnType<typeof useCutProp>;
 
+const variants = [
+	{ r: 0, hf: false, vf: false },
+	{ r: 90, hf: false, vf: false },
+	{ r: 180, hf: false, vf: false },
+	{ r: 270, hf: false, vf: false },
+	{ r: 0, hf: true, vf: false },
+	{ r: 90, hf: true, vf: false },
+	{ r: 180, hf: true, vf: false },
+	{ r: 270, hf: true, vf: false }
+];
+
 export const useTools = () => {
 	class ToolsModel {
 		hFlip = useBooleanProp();
@@ -232,15 +243,11 @@ export const useTools = () => {
 		cut = useCutProp();
 		options = $derived.by(() => {
 			const values: [boolean, boolean, number, boolean][] = [];
-			[false, true].forEach((vf) => {
-				[false, true].forEach((hf) => {
-					[0, 90, 180, 270].forEach((r) => {
-						const current =
-							hf === this.hFlip.value && vf === this.vFlip.value && this.rotate.value === r;
-						values.push([hf, vf, r, current]);
-					});
-				});
-			});
+			for (const { r, hf, vf } of variants) {
+				const current =
+					hf === this.hFlip.value && vf === this.vFlip.value && this.rotate.value === r;
+				values.push([hf, vf, r, current]);
+			}
 			const curr = values.find((o) => o[3] === true);
 			const next = nextObject(values, curr);
 			const isEnabled = !!next;
