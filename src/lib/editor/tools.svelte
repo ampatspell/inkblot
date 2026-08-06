@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Button from '$lib/button.svelte';
 	import type { UsedBooleanProp, UsedEditor, UsedRotationProp } from '$lib/models.svelte';
 	import Range from './range.svelte';
 
@@ -22,14 +23,11 @@
 	</div>
 {/snippet}
 
-{#snippet next()}
+{#snippet iter(model: { isEnabled: boolean; onPerform: () => void }, label: string)}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div
-		class={{ row: true, disabled: !tools.options.isEnabled }}
-		onclick={() => tools.options.onNext()}
-	>
-		<div class="value">Next flip & rotation</div>
+	<div class={{ row: true, disabled: !model.isEnabled }} onclick={() => model.onPerform()}>
+		<div class="value">{label}</div>
 	</div>
 {/snippet}
 
@@ -55,7 +53,8 @@
 	{@render boolean(tools.hFlip, 'Horizontal flip')}
 	{@render boolean(tools.vFlip, 'Vertical flip')}
 	{@render rotation(tools.rotate, 'Rotate')}
-	{@render next()}
+	{@render iter(tools.options.next, 'Next variant')}
+	{@render iter(tools.options.prev, 'Previous variant')}
 	{@render reset()}
 	{@render cut()}
 	{@render download()}
